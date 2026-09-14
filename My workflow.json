@@ -1,0 +1,150 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "589c8987-6ae6-4572-96bb-6056efe0091e",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://jsearch.p.rapidapi.com/search-v2",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "DevOps OR \"Cloud Engineer\" OR \"Platform Engineer\" Remote"
+            },
+            {
+              "name": "date_posted",
+              "value": "week"
+            },
+            {
+              "name": "num_pages",
+              "value": "10"
+            },
+            {
+              "name": "country",
+              "value": "in"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-rapidapi-key",
+              "value": "37ae3a993emsh57bed94e6914ff7p1e0e69jsnf2e7006844cd"
+            },
+            {
+              "name": "x-rapidapi-host",
+              "value": "jsearch.p.rapidapi.com"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "ea52aae1-0d20-4bf8-8f9e-c8226b7ff6ac",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawInput = $input.first().json;\n// JSearch v2 me array 'data.jobs' ke andar hai\nconst jobs = (rawInput.data && rawInput.data.jobs) ? rawInput.data.jobs : [];\n\n// 1. Aapki Target Companies\nconst targetCompanies = [\n  'deloitte', 'hcl', 'samsung', 'salesforce', 'google', 'microsoft', \n  'amazon', 'oracle', 'cisco', 'adobe', 'walmart', 'intuit', 'flipkart', \n  'uber', 'servicenow', 'atlassian', 'target', 'paypal', 'vmware', 'accenture'\n];\n\n// 2. Aapke Target Roles / Keywords\nconst targetKeywords = [\n  'devops', 'platform', 'linux', 'gcp', 'azure', 'aks', 'kubernetes', 'sre', 'cloud'\n];\n\nlet tableRows = '';\nlet matchedCount = 0;\n\nfor (const data of jobs) {\n  const rawTitle = data.job_title || data.title || 'DevOps Opening';\n  const rawCompany = data.employer_name || data.organization || data.company || 'Tech Company';\n  const url = data.job_apply_link || data.url || '#';\n  const location = data.job_city ? `${data.job_city}, ${data.job_country || ''}` : (data.job_country || 'India / Remote');\n\n  const titleLower = rawTitle.toLowerCase();\n  const companyLower = rawCompany.toLowerCase();\n\n  const matchesKeyword = targetKeywords.some(k => titleLower.includes(k));\n  const matchesCompany = targetCompanies.some(c => companyLower.includes(c));\n\n  if (matchesKeyword || matchesCompany) {\n    matchedCount++;\n    tableRows += `\n      <tr style=\"border-bottom: 1px solid #e0e0e0;\">\n        <td style=\"padding: 12px 10px;\">\n          <a href=\"${url}\" target=\"_blank\" style=\"color: #0a66c2; font-weight: 600; text-decoration: none;\">\n            ${rawTitle}\n          </a>\n        </td>\n        <td style=\"padding: 12px 10px; font-weight: 500; color: #333;\">${rawCompany}</td>\n        <td style=\"padding: 12px 10px; color: #666;\">${location}</td>\n      </tr>\n    `;\n  }\n}\n\nif (matchedCount === 0) {\n  tableRows = `<tr><td colspan=\"3\" style=\"padding: 15px; text-align: center; color: #777;\">No matching jobs found for selected filters.</td></tr>`;\n}\n\nconst emailHtml = `\n  <div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 700px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;\">\n    <h2 style=\"color: #0a66c2; margin-top: 0;\">🚀 DevOps, Cloud & Product Companies Alert</h2>\n    <p style=\"color: #555; font-size: 14px;\">Filtered jobs from top product companies and target cloud roles:</p>\n    <table style=\"width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;\">\n      <thead>\n        <tr style=\"background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;\">\n          <th style=\"padding: 10px;\">Role / Title</th>\n          <th style=\"padding: 10px;\">Company</th>\n          <th style=\"padding: 10px;\">Location</th>\n        </tr>\n      </thead>\n      <tbody>\n        ${tableRows}\n      </tbody>\n    </table>\n  </div>\n`;\n\nreturn [{ json: { emailHtml, matchedCount } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "edb6fa86-873b-4d27-827f-cbc5d68dc904",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "fromEmail": "sarad8855@gmail.com",
+        "toEmail": "sarad8855@gmail.com",
+        "subject": "Linkdin Job Last 24 Hours",
+        "html": "={{ $json.emailHtml }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        672,
+        0
+      ],
+      "id": "d5cae72e-a93b-4fd2-9693-d4609cfb5742",
+      "name": "Send an Email",
+      "webhookId": "bf39e842-18a7-4e53-a669-aefe4a1fbaa9",
+      "credentials": {
+        "smtp": {
+          "id": "wA1lfi4LgCJSt1e4",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "73e50e95-542d-4949-aff9-a293f8472b44",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dd7d90bf46f2113195383653fe50bdbc380bb4e42e621a5650cfc8f1fd6e21f4"
+  },
+  "nodeGroups": [],
+  "id": "3bmFu8Jg4YMZvfXS",
+  "tags": []
+}
